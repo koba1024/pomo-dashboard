@@ -12,6 +12,7 @@ export default function Main() {
     const run = async () => {
       const { data, error } = await supabase.auth.getUser();
       if (error || !data.user) {
+        setChecking(false);
         router.replace("/signin");
         return;
       }
@@ -19,7 +20,7 @@ export default function Main() {
       setChecking(false);
     };
     run();
-  }, []);
+  }, [router]);
   if (checking) {
     return <div>Loading...</div>;
   }

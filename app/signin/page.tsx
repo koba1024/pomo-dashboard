@@ -7,7 +7,7 @@ export default function SignIn() {
   const router = useRouter();
 
   const handleGuest = async () => {
-    const { data, error } = await supabase.auth.signInAnonymously();
+    const { error } = await supabase.auth.signInAnonymously();
     if (error) {
       alert(error.message);
       return;
