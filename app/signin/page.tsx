@@ -123,7 +123,6 @@ export default function SignIn() {
                   新規登録はこちら
                 </button>
               </div>
-              <div className="mt-4 text-center text-sm"></div>
             </div>
           </div>
         </div>
