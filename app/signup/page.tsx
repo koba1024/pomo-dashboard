@@ -1,4 +1,5 @@
 "use client";
+
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useState } from "react";
@@ -12,16 +13,20 @@ export default function SignUp() {
   const router = useRouter();
 
   const handleError = () => {
-    setErrorMessages([]);
     const messages: string[] = [];
-    if (!userName || !email || !password) {
-      if (!userName) {
+
+    const trimmedName = userName.trim();
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedName || !trimmedEmail || !trimmedPassword) {
+      if (!trimmedName) {
         messages.push("ユーザー名が入力されていません");
       }
-      if (!email) {
+      if (!trimmedEmail) {
         messages.push("メールアドレスが入力されていません");
       }
-      if (!password) {
+      if (!trimmedPassword) {
         messages.push("パスワードが入力されていません");
       }
 
@@ -30,6 +35,7 @@ export default function SignUp() {
         return true;
       }
     }
+    setErrorMessages([]);
     return false;
   };
 
@@ -40,10 +46,10 @@ export default function SignUp() {
     }
 
     const { error } = await supabase.auth.signUp({
-      email,
-      password,
+      email: email.trim(),
+      password: password.trim(),
       options: {
-        data: { userName },
+        data: { userName: userName.trim() },
       },
     });
 
@@ -139,6 +145,14 @@ export default function SignUp() {
                   className="w-full flex justify-center py-2.5 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   登録
+                </button>
+              </div>
+              <div>
+                <button
+                  className="w-full flex justify-center text-sm text-sky-600 hover:text-sky-700 hover:underline"
+                  onClick={() => router.push("/signin")}
+                >
+                  すでにアカウントをお持ちの方はこちら
                 </button>
               </div>
             </div>
