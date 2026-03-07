@@ -7,15 +7,16 @@ import { useState } from "react";
 export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [userName, setUserName] = useState("");
+  const [username, setUsername] = useState("");
   const [errorMessages, setErrorMessages] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const router = useRouter();
 
-  const handleError = () => {
+  const validateRequiredFields = () => {
     const messages: string[] = [];
 
-    const trimmedName = userName.trim();
+    const trimmedName = username.trim();
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
 
@@ -29,38 +30,39 @@ export default function SignUp() {
       if (!trimmedPassword) {
         messages.push("パスワードが入力されていません");
       }
-
-      if (messages.length > 0) {
-        setErrorMessages(messages);
-        return true;
-      }
     }
-    setErrorMessages([]);
-    return false;
+    return messages;
   };
 
   const handleSignup = async () => {
+    setIsSubmitting(true);
     const messages: string[] = [];
-    if (handleError()) {
+
+    const validationErrors = validateRequiredFields();
+    if (validationErrors.length > 0) {
+      setErrorMessages(validationErrors);
+      setIsSubmitting(false);
       return;
     }
+    setErrorMessages([]);
 
     const { error } = await supabase.auth.signUp({
       email: email.trim(),
       password: password.trim(),
       options: {
-        data: { userName: userName.trim() },
+        data: { username: username.trim() },
       },
     });
 
     if (error) {
       messages.push(error.message);
       setErrorMessages(messages);
+      setIsSubmitting(false);
       return;
-    } else {
-      alert("登録が完了しました。サインインしてください");
-      router.push("/signin");
     }
+    alert("登録が完了しました。サインインしてください");
+    router.push("/signin");
+    setIsSubmitting(false);
   };
 
   return (
@@ -81,8 +83,8 @@ export default function SignUp() {
                 </label>
                 <div className="mt-1">
                   <input
-                    onChange={(e) => setUserName(e.target.value)}
-                    value={userName}
+                    onChange={(e) => setUsername(e.target.value)}
+                    value={username}
                     id="username"
                     name="username"
                     placeholder="ユーザー名"
@@ -134,17 +136,18 @@ export default function SignUp() {
               </div>
               {errorMessages.length > 0 && (
                 <ul className="mt-2 text-sm text-red-500">
-                  {errorMessages.map((msg) => (
-                    <li key={msg}>{msg}</li>
+                  {errorMessages.map((msg, index) => (
+                    <li key={`${index}-${msg}`}>{msg}</li>
                   ))}
                 </ul>
               )}
               <div>
                 <button
                   onClick={handleSignup}
+                  disabled={isSubmitting}
                   className="w-full flex justify-center py-2.5 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  登録
+                  {isSubmitting ? "登録中" : "登録"}
                 </button>
               </div>
               <div>
