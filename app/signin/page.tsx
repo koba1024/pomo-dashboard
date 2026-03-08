@@ -7,38 +7,81 @@ import { useState } from "react";
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessages, setErrorMessages] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async () => {
-    if (!email) {
-      alert("メールアドレスを入力してください");
-      return;
+  const validateRequiredFields = (): string[] => {
+    const messages: string[] = [];
+
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      messages.push("メールアドレスを入力してください");
     }
     if (!password) {
-      alert("パスワードを入力してください");
-      return;
+      messages.push("パスワードを入力してください");
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    return messages;
+  };
 
-    if (error) {
-      alert(error.message);
-      return;
-    } else {
+  const handleLogin = async () => {
+    if (isSubmitting) return;
+    const messages: string[] = [];
+    try {
+      setIsSubmitting(true);
+
+      const validationErrors = validateRequiredFields();
+      if (validationErrors.length > 0) {
+        setErrorMessages(validationErrors);
+        return;
+      }
+      setErrorMessages([]);
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        messages.push(error.message);
+        setErrorMessages(messages);
+        return;
+      }
       router.push("/main");
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrorMessages([error.message]);
+      } else {
+        setErrorMessages(["予期しないエラーが発生しました"]);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleGuest = async () => {
-    const { error } = await supabase.auth.signInAnonymously();
-    if (error) {
-      alert(error.message);
-      return;
-    } else {
+    if (isSubmitting) return;
+    const messages: string[] = [];
+
+    try {
+      setIsSubmitting(true);
+      const { error } = await supabase.auth.signInAnonymously();
+      if (error) {
+        messages.push(error.message);
+        setErrorMessages(messages);
+        return;
+      }
       router.push("/main");
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrorMessages([error.message]);
+      } else {
+        setErrorMessages(["予期しないエラーが発生しました"]);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -91,6 +134,13 @@ export default function SignIn() {
                   />
                 </div>
               </div>
+              {errorMessages.length > 0 && (
+                <ul className="mt-2 text-sm text-red-500">
+                  {errorMessages.map((msg, index) => (
+                    <li key={`${index}-${msg}`}>{msg}</li>
+                  ))}
+                </ul>
+              )}
               <div>
                 <button
                   onClick={handleLogin}

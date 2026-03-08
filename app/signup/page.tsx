@@ -18,16 +18,16 @@ export default function SignUp() {
 
     const trimmedName = username.trim();
     const trimmedEmail = email.trim();
-    const trimmedPassword = password.trim();
 
-    if (!trimmedName || !trimmedEmail || !trimmedPassword) {
+    if (!trimmedName || !trimmedEmail || !password) {
       if (!trimmedName) {
         messages.push("ユーザー名が入力されていません");
       }
       if (!trimmedEmail) {
         messages.push("メールアドレスが入力されていません");
       }
-      if (!trimmedPassword) {
+      if (!password) {
+        // パスワードはスペースを許可する
         messages.push("パスワードが入力されていません");
       }
     }
@@ -35,34 +35,41 @@ export default function SignUp() {
   };
 
   const handleSignup = async () => {
-    setIsSubmitting(true);
+    if (isSubmitting) return;
     const messages: string[] = [];
+    try {
+      setIsSubmitting(true);
+      const validationErrors = validateRequiredFields();
+      if (validationErrors.length > 0) {
+        setErrorMessages(validationErrors);
+        return;
+      }
+      setErrorMessages([]);
 
-    const validationErrors = validateRequiredFields();
-    if (validationErrors.length > 0) {
-      setErrorMessages(validationErrors);
+      const { error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: { username: username.trim() },
+        },
+      });
+
+      if (error) {
+        messages.push(error.message);
+        setErrorMessages(messages);
+        return;
+      }
+      alert("登録が完了しました。サインインしてください");
+      router.push("/signin");
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrorMessages([error.message]);
+      } else {
+        setErrorMessages(["予期しないエラーが発生しました"]);
+      }
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-    setErrorMessages([]);
-
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password: password.trim(),
-      options: {
-        data: { username: username.trim() },
-      },
-    });
-
-    if (error) {
-      messages.push(error.message);
-      setErrorMessages(messages);
-      setIsSubmitting(false);
-      return;
-    }
-    alert("登録が完了しました。サインインしてください");
-    router.push("/signin");
-    setIsSubmitting(false);
   };
 
   return (
