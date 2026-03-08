@@ -31,7 +31,6 @@ export default function SignIn() {
     const messages: string[] = [];
     try {
       setIsSubmitting(true);
-
       const validationErrors = validateRequiredFields();
       if (validationErrors.length > 0) {
         setErrorMessages(validationErrors);
@@ -67,6 +66,7 @@ export default function SignIn() {
 
     try {
       setIsSubmitting(true);
+      setErrorMessages([]);
       const { error } = await supabase.auth.signInAnonymously();
       if (error) {
         messages.push(error.message);
