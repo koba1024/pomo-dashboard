@@ -56,7 +56,7 @@ export function getInvalidMinuteMessage(input: string | null): string {
   }
 
   if (!/^\d+$/.test(input.trim())) {
-    return "分は1〜180の整数で入力してください。";
+    return `分は1〜${MAX_MINUTES}の整数で入力してください。`;
   }
 
   const value = Number(input.trim());

@@ -123,7 +123,11 @@ export default function TimerPage() {
     } else {
       return;
     }
-  }, [state.ui.timer.status]);
+  }, [
+    state.ui.timer.status,
+    state.settings.pomodoro.selectedWorkMinutes,
+    state.settings.pomodoro.selectedBreakMinutes,
+  ]);
 
   const updateUi = (updater: (current: TimerUiState) => TimerUiState) => {
     setState((prev) => ({
@@ -359,11 +363,18 @@ export default function TimerPage() {
   };
 
   const handleStart = () => {
-    updateTimer((current) => ({
-      ...current,
-      status: "running",
-      phase: "working",
-    }));
+    updateTimer((current) => {
+      const shouldReset =
+        current.status === "idle" || current.status === "finished";
+      return {
+        ...current,
+        status: "running",
+        phase: "working",
+        remainingSeconds: shouldReset
+          ? state.settings.pomodoro.selectedWorkMinutes * 60
+          : current.remainingSeconds,
+      };
+    });
   };
 
   const handleStop = () => {
