@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import Sidebar from "../components/layout/Sidebar";
 
 export default function Main() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -28,17 +29,7 @@ export default function Main() {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="w-64 bg-slate-800 text-white p-6">
-        <div className="mb-6">ロゴ pomo-dashboard</div>
-        <div>
-          <div className="mb-2 bg-slate-900 font-bold p-2 rounded">
-            ダッシュボード
-          </div>
-          <div className="mb-2">ポモドーロ</div>
-          <div className="mb-2">ToDo</div>
-          <div className="mb-2">設定</div>
-        </div>
-      </aside>
+      <Sidebar />
       <div className="flex-1 bg-gray-100">
         <header className="bg-white px-6 py-4 border-b border-gray-200">
           <h1 className="text-3xl font-bold">学習ダッシュボード</h1>

@@ -36,6 +36,7 @@ import {
   getDialogTitle,
 } from "../utils/timer";
 import TimerOverlay from "../components/timer/TimerOverlay";
+import Sidebar from "../components/layout/Sidebar";
 
 const initialState: TimerPageState = {
   settings: {
@@ -414,18 +415,7 @@ export default function TimerPage() {
   return (
     <>
       <div className="flex min-h-screen flex-col md:flex-row">
-        <aside className="w-full bg-slate-800 p-6 text-white md:w-64 md:shrink-0">
-          <div className="mb-6">ロゴ pomo-dashboard</div>
-
-          <div>
-            <div className="mb-2">ダッシュボード</div>
-            <div className="mb-2 rounded bg-slate-900 p-2 font-bold">
-              ポモドーロ
-            </div>
-            <div className="mb-2">ToDo</div>
-            <div className="mb-2">設定</div>
-          </div>
-        </aside>
+        <Sidebar />
 
         <div className="flex-1 bg-gray-100">
           <header className="border-b border-gray-200 bg-white px-6 py-4">
