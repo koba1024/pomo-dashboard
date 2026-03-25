@@ -11,7 +11,11 @@ export function usePomoSettings() {
     useEffect(() => {
         const fetchPomoSettings = async () => {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError) {
+                    setError(authError.message);
+                    return;
+                }
                 if (!user) return;
 
                 const { data, error } = await supabase
@@ -53,7 +57,11 @@ export function usePomoSettings() {
 
     const saveSettings = async (newSettings: PomodoroSettings) => {
         const copySettings = pomoSettings;
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError) {
+            setError(authError.message);
+            return;
+        }
         if (!user) return;
 
         setPomoSettings(newSettings);

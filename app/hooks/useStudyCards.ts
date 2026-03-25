@@ -34,9 +34,12 @@ export function useStudyCards() {
     }, [])
 
     const addStudyCard = async (label: string) => {
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) return null;
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError) {
+            setError(authError.message);
+            return;
+        }
+        if (!user) return;
 
         const tempId = crypto.randomUUID();
         setStudyCards((prev) => [...prev, { id: tempId, label }]);
