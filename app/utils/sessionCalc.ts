@@ -1,5 +1,5 @@
 import { useSessions } from "../hooks/useSessions"
-import { Session } from "../types/session";
+import { Session, WeeklyChartDataItem } from "../types/session";
 
 /*
 今日のポモドーロ数取得
@@ -80,4 +80,54 @@ export function getMonthWorkMinutes(sessions: Session[]): number {
             return finishedAt.getFullYear() === thisYear && finishedAt.getMonth() === thisMonth;
         })
         .reduce((sum, session) => sum + session.workMinutes, 0);
+}
+
+export function getWeeklyChartData(
+    sessions: Session[]
+): WeeklyChartDataItem[] {
+    const today = new Date();
+
+    return Array.from({ length: 7 }, (_, i) => {
+        const day = new Date(today);
+        day.setDate(today.getDate() - (6 - i));
+        day.setHours(0, 0, 0, 0);
+
+        const minutes = getTodayWorkMinutes(sessions, day);
+        const date = `${day.getMonth() + 1}/${day.getDate()}`;
+
+        return { date, minutes };
+    });
+}
+
+export function getStreak(sessions: Session[]): number {
+    if (sessions.length === 0) return 0;
+
+    let streak = 0;
+    let i = 0;
+
+    const oldestSessionDate = new Date(
+        Math.min(...sessions.map((session) => new Date(session.finishedAt).getTime()))
+    );
+    oldestSessionDate.setHours(0, 0, 0, 0);
+
+    while (true) {
+        const day = new Date();
+        day.setDate(day.getDate() - i);
+        day.setHours(0, 0, 0, 0);
+
+        if (day < oldestSessionDate) {
+            break;
+        }
+
+        const hasSession = getTodayWorkMinutes(sessions, day) > 0;
+
+        if (!hasSession) {
+            break;
+        }
+
+        streak++;
+        i++;
+    }
+
+    return streak;
 }

@@ -2,9 +2,6 @@ import { AddItemResult } from "../types/timer";
 import { TargetType, InputDialogType } from "../types/timer";
 import { MAX_MINUTES } from "../constants/timer";
 
-export function createTargetId(targetType: TargetType): string {
-  return `${targetType}-${crypto.randomUUID()}`;
-}
 
 export function getTargetTypeLabel(targetType: TargetType): string {
   return targetType === "study" ? "学習カード" : "ToDo";

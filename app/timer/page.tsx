@@ -8,12 +8,10 @@ import {
 	TargetType,
 	InputDialogType,
 	TargetItem,
-	TargetData,
 	PomodoroSettings,
 	TimerSettings,
 	TimerUiState,
 	TimerPageState,
-	TimerStatus,
 	TimerState,
 } from "../types/timer";
 import PomodoroSettingsSection from "../components/timer/PomodoroSettingsSection";
@@ -29,7 +27,6 @@ import {
 	addItemWithValidation,
 	parseTextInput,
 	getInvalidTextMessage,
-	createTargetId,
 	parseMinuteInput,
 	getInvalidMinuteMessage,
 	sortMinutes,
@@ -39,21 +36,12 @@ import TimerOverlay from "../components/timer/TimerOverlay";
 import Sidebar from "../components/layout/Sidebar";
 import { playSound } from "../utils/sound";
 import { saveSession } from "@/lib/supabase/session";
+import { useTodos } from "../hooks/useTodos";
+import { useStudyCards } from "../hooks/useStudyCards";
+import { usePomoSettings } from "../hooks/usePomoSettings";
 
 const initialState: TimerPageState = {
 	settings: {
-		targets: {
-			study: [
-				{ id: "study-1", label: "フロントエンド学習" },
-				{ id: "study-2", label: "英会話" },
-				{ id: "study-3", label: "放送大学" },
-			],
-			todo: [
-				{ id: "todo-1", label: "SQL復習" },
-				{ id: "todo-2", label: "Issue確認" },
-				{ id: "todo-3", label: "英作文1問" },
-			],
-		},
 		pomodoro: {
 			workMinutes: [1],
 			breakMinutes: [1],
@@ -65,8 +53,8 @@ const initialState: TimerPageState = {
 		mode: "pomodoro",
 		activeTargetType: "study",
 		selectedTargetIdByType: {
-			study: "study-1",
-			todo: "todo-1",
+			study: "",
+			todo: "",
 		},
 		timer: {
 			status: "idle",
@@ -83,16 +71,36 @@ const initialState: TimerPageState = {
 };
 
 export default function TimerPage() {
+	const { todos, addTodo, deleteTodo } = useTodos();
+	const { studyCards, addStudyCard, deleteStudyCard } = useStudyCards();
+	const { pomoSettings, saveSettings } = usePomoSettings();
 	const [state, setState] = useState<TimerPageState>(initialState);
 
+	const todoTargetItems: TargetItem[] = todos.map((todo) => ({
+		id: todo.id,
+		label: todo.text,
+	}));
+
+	const studyTargetItems: TargetItem[] = studyCards.map((card) => ({
+		id: card.id,
+		label: card.label,
+	}));
+
 	const activeTargetType = state.ui.activeTargetType;
-	const activeTargetItems = state.settings.targets[activeTargetType];
+	const activeTargetItems =
+		activeTargetType === "study" ? studyTargetItems : todoTargetItems;
 	const selectedTargetId = state.ui.selectedTargetIdByType[activeTargetType];
 	const selectedTarget =
 		activeTargetItems.find((item) => item.id === selectedTargetId) ??
 		activeTargetItems[0];
 
 	const prevStatusRef = useRef(state.ui.timer.status);
+
+	useEffect(() => {
+		if (pomoSettings) {
+			updatePomodoro(() => pomoSettings);
+		}
+	}, [pomoSettings]);
 
 	useEffect(() => {
 		const prev = prevStatusRef.current;
@@ -110,6 +118,24 @@ export default function TimerPage() {
 
 		prevStatusRef.current = curr;
 	}, [state.ui.timer.status]);
+
+	useEffect(() => {
+		if (
+			state.ui.timer.status === "idle" ||
+			state.ui.timer.status === "finished"
+		) {
+			updateTimer((current) => ({
+				...current,
+				remainingSeconds:
+					state.settings.pomodoro.selectedWorkMinutes * 60,
+			}));
+			return;
+		}
+	}, [
+		state.ui.timer.status,
+		state.settings.pomodoro.selectedWorkMinutes,
+		state.settings.pomodoro.selectedBreakMinutes,
+	]);
 
 	useEffect(() => {
 		if (
@@ -180,13 +206,6 @@ export default function TimerPage() {
 		updateSettings((current) => ({
 			...current,
 			pomodoro: updater(current.pomodoro),
-		}));
-	};
-
-	const updateTargets = (updater: (current: TargetData) => TargetData) => {
-		updateSettings((current) => ({
-			...current,
-			targets: updater(current.targets),
 		}));
 	};
 
@@ -271,7 +290,7 @@ export default function TimerPage() {
 		}));
 	};
 
-	const handleDialogSubmit = () => {
+	const handleDialogSubmit = async () => {
 		const dialogType = state.ui.inputDialog.type;
 		const input = state.ui.inputDialog.value;
 
@@ -281,7 +300,8 @@ export default function TimerPage() {
 
 		if (dialogType === "target") {
 			const targetType = state.ui.activeTargetType;
-			const currentItems = state.settings.targets[targetType];
+			const currentItems =
+				targetType === "study" ? studyTargetItems : todoTargetItems;
 			const label = getTargetTypeLabel(targetType);
 
 			const result = addItemWithValidation<string>({
@@ -304,29 +324,16 @@ export default function TimerPage() {
 				return;
 			}
 
-			const newItem: TargetItem = {
-				id: createTargetId(targetType),
-				label: result.item,
-			};
+			if (targetType === "study") {
+				const newCard = await addStudyCard(result.item);
+				if (newCard) handleSelectTargetItem(targetType, newCard.id);
+			}
+			if (targetType === "todo") {
+				const newTodo = await addTodo(result.item);
+				if (newTodo) handleSelectTargetItem(targetType, newTodo.id);
+			}
 
-			updateTargets((current) => ({
-				...current,
-				[targetType]: [...current[targetType], newItem],
-			}));
-
-			updateUi((current) => ({
-				...current,
-				selectedTargetIdByType: {
-					...current.selectedTargetIdByType,
-					[targetType]: newItem.id,
-				},
-				inputDialog: {
-					isOpen: false,
-					type: null,
-					value: "",
-					errorMessage: "",
-				},
-			}));
+			closeInputDialog();
 
 			return;
 		}
@@ -352,43 +359,52 @@ export default function TimerPage() {
 				return;
 			}
 
-			updatePomodoro((current) => ({
-				...current,
-				workMinutes: sortMinutes([...current.workMinutes, result.item]),
+			const newPomodoro: PomodoroSettings = {
+				...state.settings.pomodoro,
+				workMinutes: sortMinutes([
+					...state.settings.pomodoro.workMinutes,
+					result.item,
+				]),
 				selectedWorkMinutes: result.item,
-			}));
-
+			};
+			updatePomodoro(() => newPomodoro);
 			closeInputDialog();
-			return;
+			void saveSettings(newPomodoro);
 		}
 
-		const result = addItemWithValidation<number>({
-			input,
-			parser: parseMinuteInput,
-			items: state.settings.pomodoro.breakMinutes,
-			maxCount: MAX_TIME_OPTION_COUNT,
-			duplicateMessage: "休憩時間が重複しています。",
-			invalidMessage: getInvalidMinuteMessage,
-		});
+		if (dialogType === "breakMinutes") {
+			const result = addItemWithValidation<number>({
+				input,
+				parser: parseMinuteInput,
+				items: state.settings.pomodoro.breakMinutes,
+				maxCount: MAX_TIME_OPTION_COUNT,
+				duplicateMessage: "休憩時間が重複しています。",
+				invalidMessage: getInvalidMinuteMessage,
+			});
 
-		if (result.status === "error") {
-			updateUi((current) => ({
-				...current,
-				inputDialog: {
-					...current.inputDialog,
-					errorMessage: result.message,
-				},
-			}));
-			return;
+			if (result.status === "error") {
+				updateUi((current) => ({
+					...current,
+					inputDialog: {
+						...current.inputDialog,
+						errorMessage: result.message,
+					},
+				}));
+				return;
+			}
+
+			const newPomodoro: PomodoroSettings = {
+				...state.settings.pomodoro,
+				breakMinutes: sortMinutes([
+					...state.settings.pomodoro.breakMinutes,
+					result.item,
+				]),
+				selectedBreakMinutes: result.item,
+			};
+			updatePomodoro(() => newPomodoro);
+			closeInputDialog();
+			void saveSettings(newPomodoro);
 		}
-
-		updatePomodoro((current) => ({
-			...current,
-			breakMinutes: sortMinutes([...current.breakMinutes, result.item]),
-			selectedBreakMinutes: result.item,
-		}));
-
-		closeInputDialog();
 	};
 
 	const startedAtRef = useRef<Date | null>(null);
@@ -418,6 +434,7 @@ export default function TimerPage() {
 			status: "finished",
 			remainingSeconds: state.settings.pomodoro.selectedWorkMinutes * 60,
 		}));
+		void handleWorkComplete();
 	};
 
 	const handleBreak = () => {
@@ -431,13 +448,42 @@ export default function TimerPage() {
 
 	const handleWorkComplete = async () => {
 		if (!startedAtRef.current) return;
+		const finishedAt = new Date();
+		const actualMinutes = Math.floor(
+			(finishedAt.getTime() - startedAtRef.current.getTime()) / 1000 / 60,
+		);
 		await saveSession({
 			targetLabel: selectedTarget?.label ?? "",
-			workMinutes: state.settings.pomodoro.selectedWorkMinutes,
+			workMinutes: actualMinutes,
 			startedAt: startedAtRef.current,
 			finishedAt: new Date(),
 		});
 		startedAtRef.current = null; // リセット
+	};
+
+	const handleDeleteItem = (targetType: TargetType, id: string) => {
+		if (targetType === "todo") deleteTodo(id);
+		if (targetType === "study") deleteStudyCard(id);
+	};
+
+	const handleDeleteMinutes = (newWork: number[], newBreak: number[]) => {
+		const pomodoro = state.settings.pomodoro;
+		const newPomodoro: PomodoroSettings = {
+			...pomodoro,
+			workMinutes: newWork,
+			breakMinutes: newBreak,
+
+			selectedWorkMinutes: newWork.includes(pomodoro.selectedWorkMinutes)
+				? pomodoro.selectedWorkMinutes
+				: newWork[0],
+			selectedBreakMinutes: newBreak.includes(
+				pomodoro.selectedBreakMinutes,
+			)
+				? pomodoro.selectedBreakMinutes
+				: newBreak[0],
+		};
+		updatePomodoro(() => newPomodoro);
+		saveSettings(newPomodoro);
 	};
 
 	const modeLabel =
@@ -485,36 +531,45 @@ export default function TimerPage() {
 
 						<TargetSelectionSection
 							activeTargetType={state.ui.activeTargetType}
-							targets={state.settings.targets}
+							targets={{
+								study: studyTargetItems,
+								todo: todoTargetItems,
+							}}
 							selectedTargetIdByType={
 								state.ui.selectedTargetIdByType
 							}
 							onChangeTargetType={handleChangeTargetType}
 							onSelectItem={handleSelectTargetItem}
 							onAddItem={handleOpenAddTargetDialog}
+							onDeleteItem={handleDeleteItem}
 						/>
 
 						{state.ui.mode === "pomodoro" ? (
 							<PomodoroSettingsSection
 								pomodoro={state.settings.pomodoro}
-								onSelectWorkMinutes={(minutes) =>
-									updatePomodoro((current) => ({
-										...current,
+								onSelectWorkMinutes={(minutes) => {
+									const newPomodoro: PomodoroSettings = {
+										...state.settings.pomodoro,
 										selectedWorkMinutes: minutes,
-									}))
-								}
-								onSelectBreakMinutes={(minutes) =>
-									updatePomodoro((current) => ({
-										...current,
+									};
+									updatePomodoro(() => newPomodoro);
+									void saveSettings(newPomodoro);
+								}}
+								onSelectBreakMinutes={(minutes) => {
+									const newPomodoro: PomodoroSettings = {
+										...state.settings.pomodoro,
 										selectedBreakMinutes: minutes,
-									}))
-								}
+									};
+									updatePomodoro(() => newPomodoro);
+									void saveSettings(newPomodoro);
+								}}
 								onAddWorkMinutes={
 									handleOpenAddWorkMinutesDialog
 								}
 								onAddBreakMinutes={
 									handleOpenAddBreakMinutesDialog
 								}
+								onDeleteTimer={handleDeleteMinutes}
 							/>
 						) : (
 							<StopwatchInfoSection />

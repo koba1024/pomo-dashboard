@@ -33,7 +33,6 @@ export type PomodoroSettings = {
 };
 
 export type TimerSettings = {
-  targets: TargetData;
   pomodoro: PomodoroSettings;
 };
 
@@ -56,5 +55,11 @@ export type TimerPageState = {
 };
 
 export type AddItemResult<T> =
-  | { status: "success"; item: T }
-  | { status: "error"; message: string };
+  | {
+    status: "success";
+    item: T;
+  }
+  | {
+    status: "error";
+    message: string;
+  };

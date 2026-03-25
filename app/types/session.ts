@@ -6,3 +6,8 @@ export type Session = {
     startedAt: string;
     finishedAt: string;
 }
+
+export type WeeklyChartDataItem = {
+    date: string;
+    minutes: number;
+};
