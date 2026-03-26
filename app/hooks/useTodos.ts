@@ -20,13 +20,15 @@ export function useTodos() {
                     return;
                 }
 
-                const mapped = data.map((row) => ({
+                const mapped = (data ?? []).map((row) => ({
                     id: row.id,
                     text: row.title,
                     isDone: row.is_completed,
                 }));
                 setTodos(mapped);
 
+            } catch (e) {
+                setError("Todoの取得に失敗しました");
             } finally {
                 setLoading(false);
             }

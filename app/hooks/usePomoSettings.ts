@@ -36,7 +36,6 @@ export function usePomoSettings() {
                     }
 
                     setError(error.message);
-                    alert(error);
                     return;
                 }
 
@@ -47,6 +46,8 @@ export function usePomoSettings() {
                     selectedBreakMinutes: data.selected_break
                 });
 
+            } catch (e) {
+                setError("設定の取得に失敗しました");
             } finally {
                 setLoading(false);
             }

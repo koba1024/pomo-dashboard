@@ -20,12 +20,14 @@ export function useStudyCards() {
                     return;
                 }
 
-                const mapped = data.map((row) => ({
+                const mapped = (data ?? []).map((row) => ({
                     id: row.id,
                     label: row.label,
                 }));
                 setStudyCards(mapped);
 
+            } catch (e) {
+                setError("学習カードの取得に失敗しました");
             } finally {
                 setLoading(false);
             }
