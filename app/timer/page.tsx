@@ -458,13 +458,18 @@ export default function TimerPage() {
 				: Math.floor(
 						(selectedWorkMinutes * 60 - remainingSeconds) / 60,
 					);
-		await saveSession({
-			targetLabel: selectedTarget?.label ?? "",
-			workMinutes: actualMinutes,
-			startedAt: startedAtRef.current,
-			finishedAt: new Date(),
-		});
-		startedAtRef.current = null;
+		try {
+			await saveSession({
+				targetLabel: selectedTarget?.label ?? "",
+				workMinutes: actualMinutes,
+				startedAt: startedAtRef.current,
+				finishedAt: new Date(),
+			});
+		} catch (error) {
+			console.error("セッションの保存に失敗しました:", error);
+		} finally {
+			startedAtRef.current = null;
+		}
 	};
 
 	const handleDeleteItem = (targetType: TargetType, id: string) => {
