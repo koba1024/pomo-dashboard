@@ -17,7 +17,7 @@ export function useSessions() {
                     setError(error.message);
                     return;
                 }
-                const mapped = data.map((row) => ({
+                const mapped = (data ?? []).map((row) => ({
                     id: row.id,
                     userId: row.user_id,
                     targetLabel: row.target_label,
@@ -26,9 +26,10 @@ export function useSessions() {
                     finishedAt: row.finished_at,
                 }));
                 setSessions(mapped);
+            } catch (e) {
+                setError(e instanceof Error ? e.message : "Unexpected error");
             } finally {
                 setLoading(false);
-
             }
         }
         void fetchSessions();
