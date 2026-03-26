@@ -12,7 +12,7 @@ export function useTodos() {
             try {
                 const { data, error } = await supabase
                     .from("todos")
-                    .select()
+                    .select("id, title, is_completed")
                     .order("created_at", { ascending: true });
 
                 if (error) {

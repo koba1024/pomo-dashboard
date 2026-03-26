@@ -47,7 +47,7 @@ export function useStudyCards() {
         const { data, error } = await supabase
             .from("study_cards")
             .insert({ user_id: user.id, label })
-            .select()
+            .select("id, label")
             .single();
 
         if (error) {

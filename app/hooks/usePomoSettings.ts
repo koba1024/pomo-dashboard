@@ -20,7 +20,7 @@ export function usePomoSettings() {
 
                 const { data, error } = await supabase
                     .from("user_settings")
-                    .select()
+                    .select("work_minutes, break_minutes, selected_work, selected_break")
                     .eq("user_id", user.id)
                     .single();
 

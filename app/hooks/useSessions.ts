@@ -11,7 +11,10 @@ export function useSessions() {
     useEffect(() => {
         const fetchSessions = async () => {
             try {
-                const { data, error } = await supabase.from("sessions").select().order("started_at", { ascending: false });
+                const { data, error } = await supabase
+                    .from("sessions")
+                    .select("id, user_id, target_label, work_minutes, started_at, finished_at")
+                    .order("started_at", { ascending: false });
 
                 if (error) {
                     setError(error.message);
