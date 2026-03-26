@@ -409,7 +409,9 @@ export default function TimerPage() {
 
 	const startedAtRef = useRef<Date | null>(null);
 	const handleStart = () => {
-		startedAtRef.current = new Date();
+		if (state.ui.timer.status !== "paused") {
+			startedAtRef.current = new Date();
+		}
 		updateTimer((current) => {
 			const shouldReset =
 				current.status === "idle" || current.status === "finished";
@@ -448,17 +450,21 @@ export default function TimerPage() {
 
 	const handleWorkComplete = async () => {
 		if (!startedAtRef.current) return;
-		const finishedAt = new Date();
-		const actualMinutes = Math.floor(
-			(finishedAt.getTime() - startedAtRef.current.getTime()) / 1000 / 60,
-		);
+		const { selectedWorkMinutes } = state.settings.pomodoro;
+		const remainingSeconds = state.ui.timer.remainingSeconds;
+		const actualMinutes =
+			remainingSeconds === 0
+				? selectedWorkMinutes
+				: Math.floor(
+						(selectedWorkMinutes * 60 - remainingSeconds) / 60,
+					);
 		await saveSession({
 			targetLabel: selectedTarget?.label ?? "",
 			workMinutes: actualMinutes,
 			startedAt: startedAtRef.current,
 			finishedAt: new Date(),
 		});
-		startedAtRef.current = null; // リセット
+		startedAtRef.current = null;
 	};
 
 	const handleDeleteItem = (targetType: TargetType, id: string) => {

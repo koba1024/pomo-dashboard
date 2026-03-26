@@ -1,34 +1,6 @@
 import { useSessions } from "../hooks/useSessions"
 import { Session, WeeklyChartDataItem } from "../types/session";
 
-/*
-今日のポモドーロ数取得
-１. 現実世界の日付(例: 2026/03/19)を取得する。
-2. sessionsのfinishedと現実世界の日付が同じ場合に、作業時間(work_minutes)を配列に格納する。(filter?)
-3. 作業時間配列の長さが今日のポモドーロ数とする。
-*/
-
-/*
-今日の作業時間取得
-１. 現実世界の日付(例: 2026/03/19)を取得する。
-2. sessionsのfinishedと現実世界の日付が同じ場合に、作業時間(work_minutes)を配列に格納する。(filter?)
-3. 作業時間配列を全て足す。
-*/
-
-/*
-今週の作業時間取得
-日-土までを1週間とする。
-１. 現実世界の日付(例: 2026/03/19)を取得する。
-2. 曜日を取得する？(1週間の始まりを日曜日に設定するため)
-3. 1週間の日付の時間を足す。
-*/
-
-/*
-今月の作業時間取得
-１. finished_atから月を取得する。
-2. 月ごとにworkminutesを足す.
-*/
-
 function getTodaySessions(sessions: Session[], day?: Date): Session[] {
     const today = day ? new Date(day) : new Date();
 
