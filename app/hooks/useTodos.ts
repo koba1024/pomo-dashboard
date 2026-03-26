@@ -60,7 +60,7 @@ export function useTodos() {
 
         const createdTodo: Todo = {
             id: data.id,
-            text: data.label,
+            text: data.title,
             isDone: data.is_completed
         }
 

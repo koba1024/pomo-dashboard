@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import SectionToggleButton from "../components/ui/SectionToggleButton";
 import TargetSelectionSection from "../components/timer/TargetSelectionSection";
 import {
@@ -36,6 +37,7 @@ import TimerOverlay from "../components/timer/TimerOverlay";
 import Sidebar from "../components/layout/Sidebar";
 import { playSound } from "../utils/sound";
 import { saveSession } from "@/lib/supabase/session";
+import { supabase } from "@/lib/supabase/client";
 import { useTodos } from "../hooks/useTodos";
 import { useStudyCards } from "../hooks/useStudyCards";
 import { usePomoSettings } from "../hooks/usePomoSettings";
@@ -71,10 +73,24 @@ const initialState: TimerPageState = {
 };
 
 export default function TimerPage() {
+	const router = useRouter();
+	const [checking, setChecking] = useState(true);
 	const { todos, addTodo, deleteTodo } = useTodos();
 	const { studyCards, addStudyCard, deleteStudyCard } = useStudyCards();
 	const { pomoSettings, saveSettings } = usePomoSettings();
 	const [state, setState] = useState<TimerPageState>(initialState);
+
+	useEffect(() => {
+		const checkAuth = async () => {
+			const { data, error } = await supabase.auth.getUser();
+			if (error || !data.user) {
+				router.replace("/signin");
+				return;
+			}
+			setChecking(false);
+		};
+		void checkAuth();
+	}, [router]);
 
 	const todoTargetItems: TargetItem[] = todos.map((todo) => ({
 		id: todo.id,
@@ -108,7 +124,9 @@ export default function TimerPage() {
 
 		if (prev === "running" && curr === "breaking") {
 			playSound();
-			void handleWorkComplete();
+			// 自動完了: remainingSecondsはすでに休憩時間にリセットされているため
+			// selectedWorkMinutes を直接渡す
+			void handleWorkComplete(state.settings.pomodoro.selectedWorkMinutes);
 		}
 
 		if (prev === "breaking" && curr === "running") {
@@ -431,12 +449,18 @@ export default function TimerPage() {
 	};
 
 	const handleEnd = () => {
+		const { selectedWorkMinutes } = state.settings.pomodoro;
+		const remaining = state.ui.timer.remainingSeconds;
+		const actualMinutes =
+			remaining === 0
+				? selectedWorkMinutes
+				: Math.floor((selectedWorkMinutes * 60 - remaining) / 60);
 		updateTimer((current) => ({
 			...current,
 			status: "finished",
-			remainingSeconds: state.settings.pomodoro.selectedWorkMinutes * 60,
+			remainingSeconds: selectedWorkMinutes * 60,
 		}));
-		void handleWorkComplete();
+		void handleWorkComplete(actualMinutes);
 	};
 
 	const handleBreak = () => {
@@ -448,20 +472,12 @@ export default function TimerPage() {
 		}));
 	};
 
-	const handleWorkComplete = async () => {
+	const handleWorkComplete = async (workMinutes: number) => {
 		if (!startedAtRef.current) return;
-		const { selectedWorkMinutes } = state.settings.pomodoro;
-		const remainingSeconds = state.ui.timer.remainingSeconds;
-		const actualMinutes =
-			remainingSeconds === 0
-				? selectedWorkMinutes
-				: Math.floor(
-						(selectedWorkMinutes * 60 - remainingSeconds) / 60,
-					);
 		try {
 			await saveSession({
 				targetLabel: selectedTarget?.label ?? "",
-				workMinutes: actualMinutes,
+				workMinutes,
 				startedAt: startedAtRef.current,
 				finishedAt: new Date(),
 			});
@@ -509,6 +525,8 @@ export default function TimerPage() {
 		state.ui.inputDialog.type ?? "target",
 		state.ui.activeTargetType,
 	);
+
+	if (checking) return <div>Loading...</div>;
 
 	return (
 		<>

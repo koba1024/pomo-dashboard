@@ -1,15 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "../components/layout/Sidebar";
 import { useTodos } from "../hooks/useTodos";
 import { MAX_TARGET_OPTION_COUNT } from "../constants/timer";
+import { supabase } from "@/lib/supabase/client";
 
 function TodoPage() {
+	const router = useRouter();
+	const [checking, setChecking] = useState(true);
 	const { todos, loading, error, addTodo, toggleTodo, deleteTodo } =
 		useTodos();
 	const [inputText, setInputText] = useState<string>("");
 	const [errorMessage, setErrorMessage] = useState("");
+
+	useEffect(() => {
+		const checkAuth = async () => {
+			const { data, error } = await supabase.auth.getUser();
+			if (error || !data.user) {
+				router.replace("/signin");
+				return;
+			}
+			setChecking(false);
+		};
+		void checkAuth();
+	}, [router]);
 
 	const handleAdd = () => {
 		if (inputText.trim() === "") {
@@ -25,7 +41,7 @@ function TodoPage() {
 		setErrorMessage("");
 	};
 
-	if (loading) {
+	if (checking || loading) {
 		return <div>Loading...</div>;
 	}
 

@@ -8,7 +8,7 @@ export function useStudyCards() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchTodos = async () => {
+        const fetchStudyCards = async () => {
             try {
                 const { data, error } = await supabase
                     .from("study_cards")
@@ -32,7 +32,7 @@ export function useStudyCards() {
                 setLoading(false);
             }
         }
-        void fetchTodos();
+        void fetchStudyCards();
     }, [])
 
     const addStudyCard = async (label: string) => {
