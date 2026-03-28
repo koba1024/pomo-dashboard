@@ -112,6 +112,24 @@ export default function TimerPage() {
 		activeTargetItems.find((item) => item.id === selectedTargetId) ??
 		activeTargetItems[0];
 
+	useEffect(() => {
+		const selectedId = state.ui.selectedTargetIdByType.study;
+		const exists = studyTargetItems.some((item) => item.id === selectedId);
+
+		if (studyTargetItems.length > 0 && !exists) {
+			handleSelectTargetItem("study", studyTargetItems[0].id);
+		}
+	}, [studyTargetItems, state.ui.selectedTargetIdByType.study]);
+
+	useEffect(() => {
+		const selectedId = state.ui.selectedTargetIdByType.todo;
+		const exists = todoTargetItems.some((item) => item.id === selectedId);
+
+		if (todoTargetItems.length > 0 && !exists) {
+			handleSelectTargetItem("todo", todoTargetItems[0].id);
+		}
+	}, [todoTargetItems, state.ui.selectedTargetIdByType.todo]);
+
 	const prevStatusRef = useRef(state.ui.timer.status);
 
 	const handleWorkComplete = useCallback(
