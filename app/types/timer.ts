@@ -1,7 +1,12 @@
 export type TimerMode = "pomodoro" | "stopwatch";
 export type TargetType = "study" | "todo";
 export type InputDialogType = "target" | "workMinutes" | "breakMinutes";
-export type TimerStatus = "idle" | "running" | "paused" | "finished" | "breaking";
+export type TimerStatus =
+  | "idle"
+  | "running"
+  | "paused"
+  | "finished"
+  | "breaking";
 export type TimerPhase = "working" | "breaking" | "idle";
 
 export type TimerState = {
@@ -28,7 +33,6 @@ export type PomodoroSettings = {
 };
 
 export type TimerSettings = {
-  targets: TargetData;
   pomodoro: PomodoroSettings;
 };
 
@@ -51,5 +55,11 @@ export type TimerPageState = {
 };
 
 export type AddItemResult<T> =
-  | { status: "success"; item: T }
-  | { status: "error"; message: string };
+  | {
+    status: "success";
+    item: T;
+  }
+  | {
+    status: "error";
+    message: string;
+  };
