@@ -29,7 +29,7 @@ function Sidebar() {
         </Link>
         <Link
           href="/settings"
-          className={`mb-2 block ${pathname === "/settings" ? "rounded bg-slate-900 p-2 font-bold" : ""}`}
+          className={`mb-2 block hidden ${pathname === "/settings" ? "rounded bg-slate-900 p-2 font-bold" : ""}`}
         >
           設定
         </Link>

@@ -10,7 +10,8 @@ function RecentSession({ sessions }: { sessions: Session[] }) {
 
 		return (
 			<div key={session.id} className="text-sm mb-1">
-				[{targetLabel}] [{workMinute}分] [{day}]
+				[{targetLabel === "" ? "未選択" : targetLabel}] [{workMinute}分]
+				[{day}]
 			</div>
 		);
 	});
