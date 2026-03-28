@@ -6,6 +6,7 @@ import Sidebar from "../components/layout/Sidebar";
 import { useTodos } from "../hooks/useTodos";
 import { MAX_TARGET_OPTION_COUNT } from "../constants/timer";
 import { supabase } from "@/lib/supabase/client";
+import Header from "../components/layout/Header";
 
 function TodoPage() {
 	const router = useRouter();
@@ -51,9 +52,7 @@ function TodoPage() {
 		<div className="flex min-h-screen">
 			<Sidebar />
 			<div className="flex-1 bg-gray-100">
-				<header className="bg-white px-6 py-4 border-b border-gray-200">
-					<h1 className="text-3xl font-bold">Todo</h1>
-				</header>
+				<Header title="Todo" />
 				<main className="p-4 sm:p-6">
 					<div className="bg-white p-4 rounded shadow mb-6">
 						<div className="text-sm opacity-75 mb-2">

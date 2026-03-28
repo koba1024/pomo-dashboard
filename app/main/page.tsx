@@ -14,9 +14,12 @@ import {
 } from "../utils/sessionCalc";
 import WorkChart from "../components/dashboard/WorkChart";
 import RecentSession from "../components/dashboard/RecentSessions";
+import { useTodos } from "../hooks/useTodos";
+import Header from "../components/layout/Header";
 
 export default function Main() {
 	const [checking, setChecking] = useState(true);
+	const { todos } = useTodos();
 	const router = useRouter();
 
 	const { sessions, loading, error } = useSessions();
@@ -26,6 +29,8 @@ export default function Main() {
 	const weekMinutes = getWeekWorkMinutes(sessions);
 	const monthMinutes = getMonthWorkMinutes(sessions);
 	const streak = getStreak(sessions);
+
+	const incompleteTodos = todos.filter((todo) => !todo.isDone);
 
 	useEffect(() => {
 		const run = async () => {
@@ -49,9 +54,7 @@ export default function Main() {
 		<div className="flex min-h-screen">
 			<Sidebar />
 			<div className="flex-1 bg-gray-100">
-				<header className="bg-white px-6 py-4 border-b border-gray-200">
-					<h1 className="text-3xl font-bold">学習ダッシュボード</h1>
-				</header>
+				<Header title="学習ダッシュボード" />
 				<main className="flex-1 bg-gray-100 p-6">
 					<div className="grid grid-cols-4 gap-4 mb-6">
 						<div className="bg-white p-4 rounded shadow ">
@@ -102,9 +105,17 @@ export default function Main() {
 							<div className="text-xs opacity-75 mb-1">
 								未完了のTodo
 							</div>
-							<div className="text-sm mb-1">Todo1</div>
-							<div className="text-sm mb-1">Todo2</div>
-							<div className="text-sm mb-1">Todo3</div>
+							{incompleteTodos.length === 0 ? (
+								<div className="text-sm opacity-50">
+									未完了のTodoはありません
+								</div>
+							) : (
+								incompleteTodos.map((todo) => (
+									<div key={todo.id} className="text-sm mb-1">
+										{todo.text}
+									</div>
+								))
+							)}
 						</div>
 					</div>
 				</main>

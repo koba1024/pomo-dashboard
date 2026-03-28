@@ -9,6 +9,7 @@ export default function SignUp() {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [errorMessages, setErrorMessages] = useState<string[]>([]);
+  const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const router = useRouter();
@@ -59,8 +60,8 @@ export default function SignUp() {
         setErrorMessages(messages);
         return;
       }
-      alert("登録が完了しました。サインインしてください");
-      router.push("/signin");
+      setSuccessMessage("登録が完了しました。サインインページへ移動します...");
+      setTimeout(() => router.push("/signin"), 2000);
     } catch (error) {
       if (error instanceof Error) {
         setErrorMessages([error.message]);
@@ -147,6 +148,11 @@ export default function SignUp() {
                     <li key={`${index}-${msg}`}>{msg}</li>
                   ))}
                 </ul>
+              )}
+              {successMessage && (
+                <div className="mt-2 text-sm text-green-600 bg-green-50 p-3 rounded-md">
+                  {successMessage}
+                </div>
               )}
               <div>
                 <button

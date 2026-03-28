@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import SectionToggleButton from "../components/ui/SectionToggleButton";
 import TargetSelectionSection from "../components/timer/TargetSelectionSection";
@@ -38,6 +38,7 @@ import Sidebar from "../components/layout/Sidebar";
 import { playSound } from "../utils/sound";
 import { saveSession } from "@/lib/supabase/session";
 import { supabase } from "@/lib/supabase/client";
+import Header from "../components/layout/Header";
 import { useTodos } from "../hooks/useTodos";
 import { useStudyCards } from "../hooks/useStudyCards";
 import { usePomoSettings } from "../hooks/usePomoSettings";
@@ -79,6 +80,7 @@ export default function TimerPage() {
 	const { studyCards, addStudyCard, deleteStudyCard } = useStudyCards();
 	const { pomoSettings, saveSettings } = usePomoSettings();
 	const [state, setState] = useState<TimerPageState>(initialState);
+	const startedAtRef = useRef<Date | null>(null);
 
 	useEffect(() => {
 		const checkAuth = async () => {
@@ -112,6 +114,25 @@ export default function TimerPage() {
 
 	const prevStatusRef = useRef(state.ui.timer.status);
 
+	const handleWorkComplete = useCallback(
+		async (workMinutes: number) => {
+			if (!startedAtRef.current) return;
+			try {
+				await saveSession({
+					targetLabel: selectedTarget?.label ?? "",
+					workMinutes,
+					startedAt: startedAtRef.current,
+					finishedAt: new Date(),
+				});
+			} catch (error) {
+				console.error("セッションの保存に失敗しました:", error);
+			} finally {
+				startedAtRef.current = null;
+			}
+		},
+		[selectedTarget],
+	);
+
 	useEffect(() => {
 		if (pomoSettings) {
 			updatePomodoro(() => pomoSettings);
@@ -124,9 +145,9 @@ export default function TimerPage() {
 
 		if (prev === "running" && curr === "breaking") {
 			playSound();
-			// 自動完了: remainingSecondsはすでに休憩時間にリセットされているため
-			// selectedWorkMinutes を直接渡す
-			void handleWorkComplete(state.settings.pomodoro.selectedWorkMinutes);
+			void handleWorkComplete(
+				state.settings.pomodoro.selectedWorkMinutes,
+			);
 		}
 
 		if (prev === "breaking" && curr === "running") {
@@ -135,7 +156,7 @@ export default function TimerPage() {
 		}
 
 		prevStatusRef.current = curr;
-	}, [state.ui.timer.status]);
+	}, [state.ui.timer.status, handleWorkComplete]);
 
 	useEffect(() => {
 		if (
@@ -425,7 +446,6 @@ export default function TimerPage() {
 		}
 	};
 
-	const startedAtRef = useRef<Date | null>(null);
 	const handleStart = () => {
 		if (state.ui.timer.status !== "paused") {
 			startedAtRef.current = new Date();
@@ -470,22 +490,6 @@ export default function TimerPage() {
 			phase: "breaking",
 			remainingSeconds: state.settings.pomodoro.selectedBreakMinutes * 60,
 		}));
-	};
-
-	const handleWorkComplete = async (workMinutes: number) => {
-		if (!startedAtRef.current) return;
-		try {
-			await saveSession({
-				targetLabel: selectedTarget?.label ?? "",
-				workMinutes,
-				startedAt: startedAtRef.current,
-				finishedAt: new Date(),
-			});
-		} catch (error) {
-			console.error("セッションの保存に失敗しました:", error);
-		} finally {
-			startedAtRef.current = null;
-		}
 	};
 
 	const handleDeleteItem = (targetType: TargetType, id: string) => {
@@ -534,14 +538,11 @@ export default function TimerPage() {
 				<Sidebar />
 
 				<div className="flex-1 bg-gray-100">
-					<header className="border-b border-gray-200 bg-white px-6 py-4">
-						<h1 className="text-3xl font-bold">
-							ポモドーロタイマー
-						</h1>
-					</header>
+					<Header title="ポモドーロタイマー" />
 
 					<main className="p-4 sm:p-6">
-						<section className="mb-6 rounded bg-white p-4 shadow">
+						{/* 後にstowwatchモードを作る */}
+						<section className="mb-6 rounded bg-white p-4 shadow hidden">
 							<div className="flex flex-wrap gap-4">
 								<SectionToggleButton
 									label="ポモドーロ"
