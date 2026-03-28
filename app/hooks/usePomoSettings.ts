@@ -11,17 +11,17 @@ export function usePomoSettings() {
     useEffect(() => {
         const fetchPomoSettings = async () => {
             try {
-                const { data: { user }, error: authError } = await supabase.auth.getUser();
-                if (authError) {
-                    setError(authError.message);
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                if (sessionError) {
+                    setError(sessionError.message);
                     return;
                 }
-                if (!user) return;
+                if (!session) return;
 
                 const { data, error } = await supabase
                     .from("user_settings")
                     .select("work_minutes, break_minutes, selected_work, selected_break")
-                    .eq("user_id", user.id)
+                    .eq("user_id", session.user.id)
                     .single();
 
                 if (error) {
@@ -58,19 +58,19 @@ export function usePomoSettings() {
 
     const saveSettings = async (newSettings: PomodoroSettings) => {
         const copySettings = pomoSettings;
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError) {
-            setError(authError.message);
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+            setError(sessionError.message);
             return;
         }
-        if (!user) return;
+        if (!session) return;
 
         setPomoSettings(newSettings);
 
         const { error } = await supabase
             .from("user_settings")
             .upsert({
-                user_id: user.id,
+                user_id: session.user.id,
                 work_minutes: newSettings.workMinutes,
                 break_minutes: newSettings.breakMinutes,
                 selected_work: newSettings.selectedWorkMinutes,

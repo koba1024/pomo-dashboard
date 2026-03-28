@@ -37,19 +37,19 @@ export function useTodos() {
     }, [])
 
     const addTodo = async (text: string) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const { data: { session }, error: authError } = await supabase.auth.getSession();
         if (authError) {
             setError(authError.message);
             return;
         }
-        if (!user) return;
+        if (!session) return;
 
         const tempId = crypto.randomUUID();
         setTodos((prev) => [...prev, { id: tempId, text, isDone: false }]);
 
         const { data, error } = await supabase
             .from("todos")
-            .insert({ user_id: user.id, title: text, is_completed: false })
+            .insert({ user_id: session.user.id, title: text, is_completed: false })
             .select()
             .single();
 

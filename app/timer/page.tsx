@@ -84,8 +84,8 @@ export default function TimerPage() {
 
 	useEffect(() => {
 		const checkAuth = async () => {
-			const { data, error } = await supabase.auth.getUser();
-			if (error || !data.user) {
+			const { data } = await supabase.auth.getSession();
+			if (!data.session) {
 				router.replace("/signin");
 				return;
 			}

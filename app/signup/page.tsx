@@ -35,7 +35,8 @@ export default function SignUp() {
     return messages;
   };
 
-  const handleSignup = async () => {
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (isSubmitting) return;
     const messages: string[] = [];
     try {
@@ -81,6 +82,7 @@ export default function SignUp() {
         </h2>
         <div className="mt-8 w-full max-w-md">
           <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <form onSubmit={handleSignup}>
             <div className="space-y-6">
               <div>
                 <label
@@ -156,7 +158,7 @@ export default function SignUp() {
               )}
               <div>
                 <button
-                  onClick={handleSignup}
+                  type="submit"
                   disabled={isSubmitting}
                   className="w-full flex justify-center py-2.5 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
@@ -172,6 +174,7 @@ export default function SignUp() {
                 </button>
               </div>
             </div>
+            </form>
           </div>
         </div>
       </div>
