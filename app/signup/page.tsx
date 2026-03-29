@@ -9,7 +9,7 @@ export default function SignUp() {
 	const [password, setPassword] = useState("");
 	const [username, setUsername] = useState("");
 	const [errorMessages, setErrorMessages] = useState<string[]>([]);
-	const [successMessage, setSuccessMessage] = useState("");
+	const [success, setSuccess] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const router = useRouter();
@@ -61,10 +61,8 @@ export default function SignUp() {
 				setErrorMessages(messages);
 				return;
 			}
-			setSuccessMessage(
-				"登録が完了しました。サインインページへ移動します...",
-			);
-			setTimeout(() => router.push("/signin"), 2000);
+			setSuccess(true);
+			// setTimeout(() => router.push("/signin"), 2000);
 		} catch (error) {
 			if (error instanceof Error) {
 				setErrorMessages([error.message]);
@@ -161,9 +159,12 @@ export default function SignUp() {
 										))}
 									</ul>
 								)}
-								{successMessage && (
-									<div className="mt-2 text-sm text-green-600 bg-green-50 p-3 rounded-md">
-										{successMessage}
+								{success && (
+									<div className="mt-2 rounded-md bg-green-50 p-3 text-sm text-green-600">
+										<p>登録が完了しました。</p>
+										<p>
+											確認メールを送信しました。メール内のリンクを開いてからログインしてください。
+										</p>
 									</div>
 								)}
 								<div>
