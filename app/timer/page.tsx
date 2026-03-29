@@ -201,7 +201,22 @@ export default function TimerPage() {
 		) {
 			const interval = setInterval(() => {
 				updateTimer((current) => {
-					if (current.remainingSeconds === 0) {
+					const startedAt = startedAtRef.current;
+					if (!startedAt) return current;
+					const baseSeconds =
+						current.status === "running"
+							? state.settings.pomodoro.selectedWorkMinutes * 60
+							: state.settings.pomodoro.selectedBreakMinutes * 60;
+					const currentTime = Date.now();
+					const elapsed = Math.floor(
+						(currentTime - startedAt.getTime()) / 1000,
+					);
+
+					const nextRemainingSeconds = Math.max(
+						baseSeconds - elapsed,
+						0,
+					);
+					if (nextRemainingSeconds === 0) {
 						if (current.status === "running") {
 							return {
 								...current,
@@ -226,7 +241,7 @@ export default function TimerPage() {
 					}
 					return {
 						...current,
-						remainingSeconds: current.remainingSeconds - 1,
+						remainingSeconds: nextRemainingSeconds,
 					};
 				});
 			}, 1000);
@@ -465,19 +480,32 @@ export default function TimerPage() {
 	};
 
 	const handleStart = () => {
-		if (state.ui.timer.status !== "paused") {
-			startedAtRef.current = new Date();
-		}
 		updateTimer((current) => {
+			// idleまたはfinishedの時は時間を選択した値に戻すしたい。(初期値はidleなのでtrueになる)
 			const shouldReset =
 				current.status === "idle" || current.status === "finished";
+
+			// 次のフェーズを指定したい。(idleの次はworking)
+			const nextPhase = shouldReset ? "working" : current.phase;
+
+			// 基となる秒数を選択したい。(一時停止ではステータスのみがpauseになる。phaseはworking)
+			const baseSeconds =
+				nextPhase === "working"
+					? state.settings.pomodoro.selectedWorkMinutes * 60
+					: state.settings.pomodoro.selectedBreakMinutes * 60;
+
+			const nextRemainingSeconds = shouldReset
+				? baseSeconds
+				: current.remainingSeconds;
+
+			const elapsedSeconds = baseSeconds - nextRemainingSeconds;
+			startedAtRef.current = new Date(Date.now() - elapsedSeconds * 1000);
+
 			return {
 				...current,
-				status: "running",
-				phase: "working",
-				remainingSeconds: shouldReset
-					? state.settings.pomodoro.selectedWorkMinutes * 60
-					: current.remainingSeconds,
+				status: nextPhase === "working" ? "running" : "breaking",
+				phase: nextPhase,
+				remainingSeconds: nextRemainingSeconds,
 			};
 		});
 	};
@@ -559,7 +587,7 @@ export default function TimerPage() {
 					<Header title="ポモドーロタイマー" />
 
 					<main className="p-4 sm:p-6">
-						{/* 後にstowwatchモードを作る */}
+						{/* 後でstowwatchモードを作る */}
 						<section className="mb-6 rounded bg-white p-4 shadow hidden">
 							<div className="flex flex-wrap gap-4">
 								<SectionToggleButton
