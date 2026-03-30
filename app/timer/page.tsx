@@ -112,6 +112,7 @@ export default function TimerPage() {
 		activeTargetItems.find((item) => item.id === selectedTargetId) ??
 		activeTargetItems[0];
 
+	// ページ遷移時などに先頭アイテムを選択する。(studyCard)
 	useEffect(() => {
 		const selectedId = state.ui.selectedTargetIdByType.study;
 		const exists = studyTargetItems.some((item) => item.id === selectedId);
@@ -121,6 +122,7 @@ export default function TimerPage() {
 		}
 	}, [studyTargetItems, state.ui.selectedTargetIdByType.study]);
 
+	// ページ遷移時などに先頭アイテムを選択する。(todo)
 	useEffect(() => {
 		const selectedId = state.ui.selectedTargetIdByType.todo;
 		const exists = todoTargetItems.some((item) => item.id === selectedId);
@@ -130,52 +132,66 @@ export default function TimerPage() {
 		}
 	}, [todoTargetItems, state.ui.selectedTargetIdByType.todo]);
 
-	const prevStatusRef = useRef(state.ui.timer.status);
-
+	// workタイマー終了時処理
 	const handleWorkComplete = useCallback(
-		async (workMinutes: number) => {
-			if (!startedAtRef.current) return;
+		async (workMinutes: number, startedAt: Date) => {
 			try {
 				await saveSession({
 					targetLabel: selectedTarget?.label ?? "",
 					workMinutes,
-					startedAt: startedAtRef.current,
+					startedAt,
 					finishedAt: new Date(),
 				});
 			} catch (error) {
 				console.error("セッションの保存に失敗しました:", error);
-			} finally {
-				startedAtRef.current = null;
 			}
 		},
 		[selectedTarget],
 	);
 
+	// Supabaseから保存済み設定を読み込んで、ローカルのstateに反映するための処理
 	useEffect(() => {
 		if (pomoSettings) {
 			updatePomodoro(() => pomoSettings);
 		}
 	}, [pomoSettings]);
 
+	// 1つ前のステータスを使用したい。
+	const prevStatusRef = useRef(state.ui.timer.status);
+
+	// workとbreakを交互に行いたい
 	useEffect(() => {
 		const prev = prevStatusRef.current;
 		const curr = state.ui.timer.status;
-
+		console.log(prev);
+		// running→breakingになった時の処理
 		if (prev === "running" && curr === "breaking") {
 			playSound();
-			void handleWorkComplete(
-				state.settings.pomodoro.selectedWorkMinutes,
-			);
+			const finishedStartedAt = startedAtRef.current;
+			startedAtRef.current = new Date();
+			if (finishedStartedAt) {
+				void handleWorkComplete(
+					state.settings.pomodoro.selectedWorkMinutes,
+					finishedStartedAt,
+				);
+			}
 		}
 
+		// breaking→runningになったときの処理
 		if (prev === "breaking" && curr === "running") {
-			playSound();
 			startedAtRef.current = new Date();
+			playSound();
 		}
 
 		prevStatusRef.current = curr;
-	}, [state.ui.timer.status, handleWorkComplete]);
+	}, [
+		state.ui.timer.status,
+		handleWorkComplete,
+		state.settings.pomodoro.selectedWorkMinutes,
+		state.settings.pomodoro.selectedBreakMinutes,
+	]);
 
+	// タイマーの選択時間が変わったら表示時間を更新する処理
 	useEffect(() => {
 		if (
 			state.ui.timer.status === "idle" ||
@@ -188,34 +204,44 @@ export default function TimerPage() {
 			}));
 			return;
 		}
-	}, [
-		state.ui.timer.status,
-		state.settings.pomodoro.selectedWorkMinutes,
-		state.settings.pomodoro.selectedBreakMinutes,
-	]);
+	}, [state.ui.timer.status, state.settings.pomodoro.selectedWorkMinutes]);
 
 	useEffect(() => {
+		// runningまたはbreakingの時にだけインターバルタイマーを起動したい。
 		if (
 			state.ui.timer.status === "running" ||
 			state.ui.timer.status === "breaking"
 		) {
 			const interval = setInterval(() => {
 				updateTimer((current) => {
+					// 開始時間を使用したい。
 					const startedAt = startedAtRef.current;
-					if (!startedAt) return current;
+					if (!startedAt) {
+						console.log("start error");
+						return current;
+					}
+
+					// 基となる時間を選択したい
 					const baseSeconds =
 						current.status === "running"
 							? state.settings.pomodoro.selectedWorkMinutes * 60
 							: state.settings.pomodoro.selectedBreakMinutes * 60;
+
+					// 現在時刻を取得したい。
 					const currentTime = Date.now();
+
+					// 現在時間 - スタート時間を引いて、経過時間を取得したい。
 					const elapsed = Math.floor(
 						(currentTime - startedAt.getTime()) / 1000,
 					);
 
+					// 選択した時間よりも経過時間が多い時は0にしたい。
 					const nextRemainingSeconds = Math.max(
 						baseSeconds - elapsed,
 						0,
 					);
+
+					// 残り時間が0になったときの処理
 					if (nextRemainingSeconds === 0) {
 						if (current.status === "running") {
 							return {
@@ -239,6 +265,8 @@ export default function TimerPage() {
 						}
 						return { ...current, status: "finished" };
 					}
+
+					// 値を更新したい。
 					return {
 						...current,
 						remainingSeconds: nextRemainingSeconds,
@@ -479,9 +507,10 @@ export default function TimerPage() {
 		}
 	};
 
+	// タイマーのスタートボタン、一時停止後の再開ボタン処理。
 	const handleStart = () => {
 		updateTimer((current) => {
-			// idleまたはfinishedの時は時間を選択した値に戻すしたい。(初期値はidleなのでtrueになる)
+			// idleまたはfinishedの時は時間を選択した値に戻したい。(初期値はidleなのでtrueになる)
 			const shouldReset =
 				current.status === "idle" || current.status === "finished";
 
@@ -494,13 +523,21 @@ export default function TimerPage() {
 					? state.settings.pomodoro.selectedWorkMinutes * 60
 					: state.settings.pomodoro.selectedBreakMinutes * 60;
 
+			// 残時間を求めたい。(初回はidleなのでbaseを選ぶが、一時停止後の再開では現在の残時間を選択する)
 			const nextRemainingSeconds = shouldReset
 				? baseSeconds
 				: current.remainingSeconds;
 
+			// このフェーズですでに経過した秒数を求めたい。
+			// 再開時は、この経過秒数だけ過去にstartedAtをずらして、一時停止中の時間を含めないようにする。
 			const elapsedSeconds = baseSeconds - nextRemainingSeconds;
+
+			// startedAtを更新したい。
+			// 再開時は「すでに経過した秒数」だけ現在時刻から戻した時刻をstartedAtにすることで、
+			// 一時停止していた時間を経過時間に含めないようにする。
 			startedAtRef.current = new Date(Date.now() - elapsedSeconds * 1000);
 
+			// ステータスの更新をしたい。
 			return {
 				...current,
 				status: nextPhase === "working" ? "running" : "breaking",
@@ -510,26 +547,39 @@ export default function TimerPage() {
 		});
 	};
 
+	// タイマーストップボタン処理
 	const handleStop = () => {
 		updateTimer((current) => ({ ...current, status: "paused" }));
 	};
 
+	// タイマー終了ボタン処理
 	const handleEnd = () => {
-		const { selectedWorkMinutes } = state.settings.pomodoro;
-		const remaining = state.ui.timer.remainingSeconds;
-		const actualMinutes =
-			remaining === 0
-				? selectedWorkMinutes
-				: Math.floor((selectedWorkMinutes * 60 - remaining) / 60);
+		const timer = state.ui.timer;
+
+		if (timer.phase === "working" && startedAtRef.current) {
+			const workSeconds =
+				state.settings.pomodoro.selectedWorkMinutes * 60;
+			const actualMinutes = Math.max(
+				Math.floor((workSeconds - timer.remainingSeconds) / 60),
+				0,
+			);
+			void handleWorkComplete(actualMinutes, startedAtRef.current);
+		}
+
+		startedAtRef.current = null;
+
 		updateTimer((current) => ({
 			...current,
 			status: "finished",
-			remainingSeconds: selectedWorkMinutes * 60,
+			phase: "idle",
+			remainingSeconds: state.settings.pomodoro.selectedWorkMinutes * 60,
 		}));
-		void handleWorkComplete(actualMinutes);
 	};
 
+	// 休憩ボタン処理
 	const handleBreak = () => {
+		startedAtRef.current = new Date();
+
 		updateTimer((current) => ({
 			...current,
 			status: "breaking",
@@ -538,11 +588,13 @@ export default function TimerPage() {
 		}));
 	};
 
+	// アイテム削除処理
 	const handleDeleteItem = (targetType: TargetType, id: string) => {
 		if (targetType === "todo") deleteTodo(id);
 		if (targetType === "study") deleteStudyCard(id);
 	};
 
+	// タイマー削除処理
 	const handleDeleteMinutes = (newWork: number[], newBreak: number[]) => {
 		const pomodoro = state.settings.pomodoro;
 		const newPomodoro: PomodoroSettings = {
