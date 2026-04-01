@@ -163,7 +163,6 @@ export default function TimerPage() {
 	useEffect(() => {
 		const prev = prevStatusRef.current;
 		const curr = state.ui.timer.status;
-		console.log(prev);
 		// running→breakingになった時の処理
 		if (prev === "running" && curr === "breaking") {
 			playSound();
@@ -217,7 +216,6 @@ export default function TimerPage() {
 					// 開始時間を使用したい。
 					const startedAt = startedAtRef.current;
 					if (!startedAt) {
-						console.log("start error");
 						return current;
 					}
 
